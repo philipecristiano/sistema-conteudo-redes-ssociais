@@ -9,7 +9,11 @@ export default function Home() {
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-2xl font-semibold mb-4">Principais Funcionalidades:</h2>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Pesquisa em fontes confiáveis</li>
+            <li>
+              <a href="/pesquisa" className="text-blue-600 hover:underline">
+                Pesquisa em fontes confiáveis
+              </a>
+            </li>
             <li>Geração de texto com IA</li>
             <li>Criação de imagens para posts</li>
             <li>Integração com Instagram</li>
