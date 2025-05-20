@@ -14,7 +14,11 @@ export default function Home() {
                 Pesquisa em fontes confiáveis
               </a>
             </li>
-            <li>Geração de texto com IA</li>
+            <li>
+              <a href="/geracao-texto" className="text-blue-600 hover:underline">
+                Geração de texto com IA
+              </a>
+            </li>
             <li>Criação de imagens para posts</li>
             <li>Integração com Instagram</li>
             <li>Agendamento de publicações</li>
