@@ -19,7 +19,11 @@ export default function Home() {
                 Geração de texto com IA
               </a>
             </li>
-            <li>Criação de imagens para posts</li>
+            <li>
+              <a href="/criacao-imagens" className="text-blue-600 hover:underline">
+                Criação de imagens para posts
+              </a>
+            </li>
             <li>Integração com Instagram</li>
             <li>Agendamento de publicações</li>
           </ul>
