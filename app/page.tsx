@@ -29,7 +29,11 @@ export default function Home() {
                 Integração com Instagram
               </a>
             </li>
-            <li>Agendamento de publicações</li>
+            <li>
+              <a href="/agendamento" className="text-blue-600 hover:underline">
+                Agendamento de publicações
+              </a>
+            </li>
           </ul>
         </div>
         
