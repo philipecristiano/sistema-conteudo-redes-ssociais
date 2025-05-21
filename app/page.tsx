@@ -24,7 +24,11 @@ export default function Home() {
                 Criação de imagens para posts
               </a>
             </li>
-            <li>Integração com Instagram</li>
+            <li>
+              <a href="/instagram" className="text-blue-600 hover:underline">
+                Integração com Instagram
+              </a>
+            </li>
             <li>Agendamento de publicações</li>
           </ul>
         </div>
