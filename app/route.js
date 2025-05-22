@@ -16,22 +16,22 @@ export async function GET(request) {
     fullQuery += ` ${nicho}`;
   }
   
+  // Use o ID do mecanismo de pesquisa e a chave de API do Google
+  const searchEngineId = '8002d35404ea24977';
+  const apiKey = process.env.GOOGLE_API_KEY || 'sua-chave-aqui';
+  
   try {
-    const response = await fetch(`https://google-search72.p.rapidapi.com/search?q=${encodeURIComponent(fullQuery )}&num=10`, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || 'sua-chave-aqui',
-        'X-RapidAPI-Host': 'google-search72.p.rapidapi.com'
-      }
-    });
+    const response = await fetch(
+      `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${searchEngineId}&q=${encodeURIComponent(fullQuery )}`
+    );
     
     const data = await response.json();
     
     // Transformar os resultados para um formato mais amigável
-    const results = data.results?.map(item => ({
+    const results = data.items?.map(item => ({
       title: item.title,
       link: item.link,
-      snippet: item.description,
+      snippet: item.snippet,
       source: new URL(item.link).hostname,
       credibility: calculateCredibility(item.link)
     })) || [];
