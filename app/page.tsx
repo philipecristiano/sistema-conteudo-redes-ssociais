@@ -22,7 +22,7 @@ export default function PesquisaPage() {
     setError('');
     
     try {
-      const response = await fetch(`/api/search?query=${encodeURIComponent(tema)}&nicho=${encodeURIComponent(nicho)}&plataforma=${encodeURIComponent(plataforma)}`);
+      const response = await fetch(`/api/search?query=${encodeURIComponent(tema)}&nicho=${encodeURIComponent(nicho)}`);
       
       if (!response.ok) {
         throw new Error('Erro ao realizar a pesquisa');
