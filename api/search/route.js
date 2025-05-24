@@ -18,7 +18,8 @@ export async function GET(request) {
   
   // Use o ID do mecanismo de pesquisa e a chave de API do Google
   const searchEngineId = '8002d35404ea24977';
-  const apiKey = process.env.GOOGLE_API_KEY || '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';
+  const apiKey = process.env.GOOGLE_API_KEY;
+
   
   try {
     const response = await fetch(
