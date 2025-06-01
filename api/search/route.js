@@ -55,10 +55,10 @@ function calculateCredibility(url) {
   
   // Lista de domínios confiáveis
   const highCredibilityDomains = [
-    'gov.br', 'edu.br', 'org.br', 
+    'scielo.br', 'edu.br', 'scholar.google.com.br', 
     'who.int', 'un.org', 'nasa.gov',
     'bbc.com', 'reuters.com', 'nytimes.com',
-    'folha.uol.com.br', 'estadao.com.br', 'g1.globo.com'
+    'periodicos.capes.gov.br', 'teses.usp.br', 'lume.ufrgs.br'
   ];
   
   // Verificar se o domínio ou parte dele está na lista
