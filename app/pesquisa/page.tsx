@@ -10,7 +10,8 @@ export default function PesquisaPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSearch = async (e) => {
+  const handleSearch = async (e: React.FormEvent) => {
+
     e.preventDefault(); // Impede o recarregamento da página
     
     if (!tema) {
