@@ -12,7 +12,6 @@ export default function PesquisaPage() {
 
   const handleSearch = async (e: React.FormEvent) => {
 
-
     e.preventDefault(); // Impede o recarregamento da página
     
     if (!tema) {
