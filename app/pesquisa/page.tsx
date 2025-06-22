@@ -47,11 +47,11 @@ export default function PesquisaPage() {
       }
       
     } catch (err) {
-      setError(err.message || 'Ocorreu um erro inesperado. Verifique sua chave de API e tente novamente.');
-      console.error(err);
-    } finally {
-      setIsLoading(false); // Termina o carregamento
-    }
+  // Verifica se 'err' é uma instância de Error para acessar 'message' com segurança
+  setError((err instanceof Error ? err.message : 'Ocorreu um erro inesperado.') || 'Ocorreu um erro inesperado. Verifique sua chave de API e tente novamente.');
+  console.error(err);
+}
+
   };
 
   // O restante é a estrutura visual (JSX)
