@@ -1,12 +1,19 @@
 'use client'; // <-- ESSENCIAL: Adicione esta linha no topo!
 
 import { useState } from 'react';
+interface SearchResult {
+  link: string;
+  title: string;
+  source: string;
+  snippet: string;
+  credibility: string;
+}
 
 export default function PesquisaPage() {
   const [tema, setTema] = useState('');
   const [nicho, setNicho] = useState('');
   const [plataforma, setPlataforma] = useState(''); // Mantido, embora não usado na API atual
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
