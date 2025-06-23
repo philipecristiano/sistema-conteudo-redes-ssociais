@@ -11,7 +11,19 @@ export default function GeracaoTextoPage() {
   const [error, setError] = useState('');
 
   // Log para ver o estado atual na renderização do componente
-  console.log('Renderizando GeracaoTextoPage. isLoading:', isLoading, 'generatedText.length:', generatedText.length, 'error:', error);
+console.log('Renderizando GeracaoTextoPage. isLoading:', isLoading, 'generatedText.length:', generatedText.length, 'error:', error);
+// ...
+console.log('handleGenerateText iniciado.'); // Log 1: Início da função
+// ...
+console.log('handleGenerateText: isLoading definido para true.'); // Log 2: Após setar isLoading
+// ...
+console.log('handleGenerateText: Iniciando chamada fetch para /api/generate-text.'); // Log 3: Antes do fetch
+// ...
+console.log('handleGenerateText: Resposta do fetch recebida. Status:', response.status); // Log 4: Após o fetch
+// ...
+console.log('handleGenerateText: Texto gerado recebido e definido.'); // Log 5: Texto recebido
+// ...
+console.log('handleGenerateText: Bloco finally executado. isLoading definido para false.'); // Log 6: Final da função
 
   const handleGenerateText = async (e: React.FormEvent) => {
     e.preventDefault();
