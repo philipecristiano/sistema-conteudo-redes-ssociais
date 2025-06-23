@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export async function POST(request) {
+  console.log("Requisição recebida para /api/generate-text!"); // ADICIONE ESTA LINHA
+
   const { tema, formato, tom } = await request.json();
 
   if (!tema) {
@@ -13,6 +15,7 @@ export async function POST(request) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
+    console.error("Erro: Chave de API do Gemini não configurada."); // ADICIONE ESTA LINHA
     return new Response(JSON.stringify({ error: 'Chave de API do Gemini não configurada.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -32,13 +35,14 @@ export async function POST(request) {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
+    console.log("Texto gerado com sucesso!"); // ADICIONE ESTA LINHA
 
     return new Response(JSON.stringify({ generatedText: text }), {
       headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error("Erro ao chamar a API do Gemini:", error);
+    console.error("Erro ao chamar a API do Gemini:", error); // ADICIONE ESTA LINHA
     return new Response(JSON.stringify({ error: 'Erro ao gerar texto com IA. Verifique sua chave de API ou tente novamente mais tarde.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
