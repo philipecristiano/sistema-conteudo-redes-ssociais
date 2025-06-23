@@ -161,7 +161,17 @@ export default function PesquisaPage() {
             <p className="text-blue-600">Carregando resultados...</p>
           </div>
         )}
-        
+        // Log para ver o estado atual na renderização
+console.log('Renderizando PesquisaPage. isLoading:', isLoading, 'results.length:', results.length);
+// ...
+console.log('handleSearch iniciado. isLoading ANTES:', isLoading); // Log 1
+// ...
+console.log('handleSearch: isLoading APÓS setIsLoading(true):', isLoading); // Log 2
+// ...
+console.log('handleSearch: Resultados recebidos. results.length:', (data.results || []).length); // Log 3
+// ...
+console.log('handleSearch: finally block. isLoading APÓS setIsLoading(false):', isLoading); // Log 4
+
         {/* Mostra os resultados da busca */}
         {!isLoading && results.length > 0 && (
           <div className="space-y-4">
