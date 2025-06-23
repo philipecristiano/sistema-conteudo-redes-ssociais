@@ -10,19 +10,27 @@ export default function GeracaoTextoPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Log para ver o estado atual na renderização do componente
+  console.log('Renderizando GeracaoTextoPage. isLoading:', isLoading, 'generatedText.length:', generatedText.length, 'error:', error);
+
   const handleGenerateText = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('handleGenerateText iniciado.'); // Log 1: Início da função
+    
     setGeneratedText(''); // Limpa texto gerado anteriormente
     setError(''); // Limpa erros anteriores
 
     if (!tema) {
       setError('Por favor, informe um tema para gerar o texto.');
+      console.log('handleGenerateText: Tema vazio. Definindo erro.'); // Log de erro
       return;
     }
 
     setIsLoading(true);
+    console.log('handleGenerateText: isLoading definido para true.'); // Log 2: Após setar isLoading
 
     try {
+      console.log('handleGenerateText: Iniciando chamada fetch para /api/generate-text.'); // Log 3: Antes do fetch
       const response = await fetch('/api/generate-text', {
         method: 'POST',
         headers: {
@@ -30,7 +38,8 @@ export default function GeracaoTextoPage() {
         },
         body: JSON.stringify({ tema, formato, tom }),
       });
-
+      console.log('handleGenerateText: Resposta do fetch recebida. Status:', response.status); // Log 4: Após o fetch
+      
       if (!response.ok) {
         let errorMsg = 'Erro ao gerar texto com IA.';
         try {
@@ -39,17 +48,20 @@ export default function GeracaoTextoPage() {
         } catch (parseError) {
           // Ignora erro de parse, mantém a mensagem genérica
         }
+        console.log('handleGenerateText: Resposta da API NÃO OK. Erro:', errorMsg); // Log de erro da API
         throw new Error(errorMsg);
       }
 
       const data = await response.json();
       setGeneratedText(data.generatedText);
-
+      console.log('handleGenerateText: Texto gerado recebido e definido.'); // Log 5: Texto recebido
+      
     } catch (err) {
       setError((err instanceof Error ? err.message : 'Ocorreu um erro inesperado.'));
-      console.error("Erro no frontend ao gerar texto:", err);
+      console.error("handleGenerateText: Erro na requisição ou processamento:", err); // Log de erro geral
     } finally {
       setIsLoading(false);
+      console.log('handleGenerateText: Bloco finally executado. isLoading definido para false.'); // Log 6: Final da função
     }
   };
 
