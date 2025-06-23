@@ -1,6 +1,7 @@
 'use client'; // <-- ESSENCIAL: Adicione esta linha no topo!
 
 import { useState } from 'react';
+
 interface SearchResult {
   link: string;
   title: string;
@@ -17,9 +18,13 @@ export default function PesquisaPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSearch = async (e: React.FormEvent) => {
+  // Log para ver o estado atual na renderização
+  console.log('Renderizando PesquisaPage. isLoading:', isLoading, 'results.length:', results.length);
 
-    e.preventDefault(); // Impede o recarregamento da página
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    console.log('handleSearch iniciado. isLoading ANTES:', isLoading); // Log 1
     
     if (!tema) {
       setError('Por favor, informe um tema para pesquisar');
@@ -27,38 +32,37 @@ export default function PesquisaPage() {
     }
     
     setIsLoading(true);
-    setError('');
     setResults([]); // Limpa resultados anteriores
+    console.log('handleSearch: isLoading APÓS setIsLoading(true):', isLoading); // Log 2
     
     try {
-      // Chama a nossa API interna (que chama a API do Google)
       const response = await fetch(`/api/search?query=${encodeURIComponent(tema)}&nicho=${encodeURIComponent(nicho)}`);
       
       if (!response.ok) {
-        // Tenta ler a mensagem de erro da API, se houver
         let errorMsg = 'Erro ao realizar a pesquisa';
         try {
           const errorData = await response.json();
           errorMsg = errorData.error || errorMsg;
         } catch (parseError) {
-          // Ignora erro de parse, mantém a mensagem genérica
         }
         throw new Error(errorMsg);
       }
       
       const data = await response.json();
-      setResults(data.results || []); // Atualiza os resultados na tela
+      setResults(data.results || []);
+      console.log('handleSearch: Resultados recebidos. results.length:', (data.results || []).length); // Log 3
       
       if (!data.results || data.results.length === 0) {
         setError('Nenhum resultado encontrado para este tema.');
       }
       
     } catch (err) {
-  // Verifica se 'err' é uma instância de Error para acessar 'message' com segurança
-  setError((err instanceof Error ? err.message : 'Ocorreu um erro inesperado.') || 'Ocorreu um erro inesperado. Verifique sua chave de API e tente novamente.');
-  console.error(err);
-}
-
+      setError((err instanceof Error ? err.message : 'Ocorreu um erro inesperado.') || 'Ocorreu um erro inesperado. Verifique sua chave de API e tente novamente.');
+      console.error(err);
+    } finally {
+      setIsLoading(false); // Termina o carregamento
+      console.log('handleSearch: finally block. isLoading APÓS setIsLoading(false):', isLoading); // Log 4
+    }
   };
 
   // O restante é a estrutura visual (JSX)
@@ -194,4 +198,3 @@ export default function PesquisaPage() {
     </main>
   );
 }
-
