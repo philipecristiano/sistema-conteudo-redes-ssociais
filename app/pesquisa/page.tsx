@@ -18,33 +18,29 @@ export default function PesquisaPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Log para ver o estado atual na renderização
-  console.log('Renderizando PesquisaPage. isLoading:', isLoading, 'results.length:', results.length);
-  // ...
-console.log('handleSearch iniciado. isLoading ANTES:', isLoading); // Log 1
-// ...
-console.log('handleSearch: isLoading APÓS setIsLoading(true):', isLoading); // Log 2
-// ...
-console.log('handleSearch: Resultados recebidos. results.length:', (data.results || []).length); // Log 3
-// ...
-console.log('handleSearch: finally block. isLoading APÓS setIsLoading(false):', isLoading); // Log 4
+  // Log para ver o estado atual na renderização do componente
+  console.log('Renderizando PesquisaPage. Estado atual: isLoading:', isLoading, 'results.length:', results.length, 'error:', error);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('handleSearch iniciado. isLoading ANTES:', isLoading); // Log 1
+    console.log('handleSearch iniciado. Tema:', tema, 'Nicho:', nicho); // Log 1: Início da função
     
     if (!tema) {
       setError('Por favor, informe um tema para pesquisar');
+      console.log('handleSearch: Tema vazio. Definindo erro.'); // Log de erro
       return;
     }
     
     setIsLoading(true);
     setResults([]); // Limpa resultados anteriores
-    console.log('handleSearch: isLoading APÓS setIsLoading(true):', isLoading); // Log 2
+    setError(''); // Limpa erros anteriores
+    console.log('handleSearch: isLoading definido para true, results e error limpos.'); // Log 2: Após setar estados
     
     try {
       const response = await fetch(`/api/search?query=${encodeURIComponent(tema)}&nicho=${encodeURIComponent(nicho)}`);
+      
+      console.log('handleSearch: Resposta da API recebida. Status:', response.status); // Log 3: Resposta da API
       
       if (!response.ok) {
         let errorMsg = 'Erro ao realizar a pesquisa';
@@ -52,24 +48,27 @@ console.log('handleSearch: finally block. isLoading APÓS setIsLoading(false):',
           const errorData = await response.json();
           errorMsg = errorData.error || errorMsg;
         } catch (parseError) {
+          // Ignora erro de parse, mantém a mensagem genérica
         }
+        console.log('handleSearch: Resposta da API NÃO OK. Erro:', errorMsg); // Log de erro da API
         throw new Error(errorMsg);
       }
       
       const data = await response.json();
       setResults(data.results || []);
-      console.log('handleSearch: Resultados recebidos. results.length:', (data.results || []).length); // Log 3
+      console.log('handleSearch: Resultados processados. Quantidade de resultados:', (data.results || []).length); // Log 4: Resultados recebidos
       
       if (!data.results || data.results.length === 0) {
         setError('Nenhum resultado encontrado para este tema.');
+        console.log('handleSearch: Nenhum resultado encontrado.'); // Log de nenhum resultado
       }
       
     } catch (err) {
       setError((err instanceof Error ? err.message : 'Ocorreu um erro inesperado.') || 'Ocorreu um erro inesperado. Verifique sua chave de API e tente novamente.');
-      console.error(err);
+      console.error('handleSearch: Erro na requisição:', err); // Log de erro geral
     } finally {
       setIsLoading(false); // Termina o carregamento
-      console.log('handleSearch: finally block. isLoading APÓS setIsLoading(false):', isLoading); // Log 4
+      console.log('handleSearch: Bloco finally executado. isLoading definido para false.'); // Log 5: Final da função
     }
   };
 
@@ -170,7 +169,6 @@ console.log('handleSearch: finally block. isLoading APÓS setIsLoading(false):',
           </div>
         )}
         
-
         {/* Mostra os resultados da busca */}
         {!isLoading && results.length > 0 && (
           <div className="space-y-4">
