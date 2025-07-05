@@ -9,41 +9,95 @@ export async function POST(request) {
       });
     }
 
+    const huggingfaceApiKey = process.env.HUGGINGFACE_API_KEY;
+    
+    if (!huggingfaceApiKey) {
+      console.error("Erro: Chave de API do Hugging Face não configurada.");
+      return new Response(JSON.stringify({ error: 'Chave de API do Hugging Face não configurada.' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // Construir o prompt melhorado com estilo e formato
     let enhancedPrompt = prompt;
     
     if (estilo && estilo !== 'Padrão') {
-      enhancedPrompt += `, ${estilo} style`;
+      if (estilo === 'Realista') {
+        enhancedPrompt += ', photorealistic, high quality, detailed';
+      } else if (estilo === 'Cartoon') {
+        enhancedPrompt += ', cartoon style, animated, colorful';
+      } else if (estilo === 'Minimalista') {
+        enhancedPrompt += ', minimalist style, clean, simple';
+      } else {
+        enhancedPrompt += `, ${estilo} style`;
+      }
     }
     
     if (formato && formato !== 'Quadrado') {
       if (formato === 'Retrato') {
-        enhancedPrompt += ', portrait orientation';
+        enhancedPrompt += ', portrait orientation, vertical';
       } else if (formato === 'Paisagem') {
-        enhancedPrompt += ', landscape orientation';
+        enhancedPrompt += ', landscape orientation, horizontal';
       }
     }
 
-    // Usar a API gratuita do Pollinations.ai para gerar imagem real
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt )}?width=512&height=512&seed=${Math.floor(Math.random() * 1000000)}`;
+    // Adicionar qualificadores para melhor qualidade
+    enhancedPrompt += ', high quality, 8k, detailed';
+
+    console.log('Prompt enviado para Hugging Face:', enhancedPrompt);
+
+    // Usar a API do Hugging Face com Stable Diffusion
+    const huggingfaceUrl = 'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1';
     
-    // Verificar se a imagem foi gerada com sucesso
     try {
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error('Falha ao gerar imagem');
+      const response = await fetch(huggingfaceUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${huggingfaceApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: enhancedPrompt,
+          parameters: {
+            num_inference_steps: 20,
+            guidance_scale: 7.5,
+            width: 512,
+            height: 512
+          }
+        } )
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erro da API Hugging Face:', response.status, errorText);
+        
+        // Se o modelo está carregando, tentar novamente
+        if (response.status === 503) {
+          throw new Error('Modelo está carregando, tente novamente em alguns segundos');
+        }
+        
+        throw new Error(`Erro da API: ${response.status}`);
       }
+
+      // A resposta do Hugging Face é uma imagem em bytes
+      const imageBuffer = await response.arrayBuffer();
+      
+      // Converter para base64
+      const base64Image = `data:image/jpeg;base64,${Buffer.from(imageBuffer).toString('base64')}`;
+      
+      console.log('Imagem gerada com sucesso via Hugging Face');
       
       return new Response(JSON.stringify({ 
-        imageUrl: imageUrl,
-        message: 'Imagem gerada com sucesso!'
+        imageUrl: base64Image,
+        message: 'Imagem gerada com sucesso via IA!'
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
       
-    } catch (imageError) {
-      console.error('Erro ao gerar imagem via Pollinations:', imageError);
+    } catch (huggingfaceError) {
+      console.error('Erro ao gerar imagem via Hugging Face:', huggingfaceError);
       
       // Fallback: retornar uma imagem SVG como backup
       const fallbackSvg = createFallbackSVG(prompt, estilo, formato);
@@ -51,7 +105,7 @@ export async function POST(request) {
       
       return new Response(JSON.stringify({ 
         imageUrl: base64Image,
-        message: 'Imagem gerada com sucesso! (modo fallback)'
+        message: `Imagem gerada com fallback. Erro: ${huggingfaceError.message}`
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -59,7 +113,7 @@ export async function POST(request) {
     }
 
   } catch (error) {
-    console.error('Erro ao gerar imagem:', error);
+    console.error('Erro geral ao gerar imagem:', error);
     return new Response(JSON.stringify({ error: 'Erro interno do servidor.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -88,7 +142,7 @@ function createFallbackSVG(prompt, estilo, formato) {
       <circle cx="256" cy="150" r="60" fill="${textColor}" opacity="0.1" />
       <circle cx="100" cy="400" r="40" fill="${textColor}" opacity="0.1" />
       <circle cx="400" cy="350" r="50" fill="${textColor}" opacity="0.1" />
-      <text x="256" y="200" font-family="Arial, sans-serif" font-size="20" font-weight="bold" 
+      <text x="256" y="200" font-family="Arial, sans-serif" font-size="18" font-weight="bold" 
             text-anchor="middle" fill="${textColor}">
         ${title}
       </text>
@@ -102,7 +156,7 @@ function createFallbackSVG(prompt, estilo, formato) {
       </text>
       <text x="256" y="450" font-family="Arial, sans-serif" font-size="12" 
             text-anchor="middle" fill="${textColor}" opacity="0.6">
-        Imagem de Fallback
+        Fallback - Tente novamente
       </text>
     </svg>
   `;
