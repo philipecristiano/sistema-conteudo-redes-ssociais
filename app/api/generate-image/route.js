@@ -19,7 +19,7 @@ export async function POST(request) {
       });
     }
 
-    // Construir o prompt melhorado com estilo e formato
+    // Construir o prompt melhorado
     let enhancedPrompt = prompt;
     
     if (estilo && estilo !== 'Padrão') {
@@ -33,24 +33,18 @@ export async function POST(request) {
         enhancedPrompt += `, ${estilo} style`;
       }
     }
-    
-    if (formato && formato !== 'Quadrado') {
-      if (formato === 'Retrato') {
-        enhancedPrompt += ', portrait orientation, vertical';
-      } else if (formato === 'Paisagem') {
-        enhancedPrompt += ', landscape orientation, horizontal';
-      }
-    }
 
     // Adicionar qualificadores para melhor qualidade
-    enhancedPrompt += ', high quality, 8k, detailed';
+    enhancedPrompt += ', high quality, detailed';
 
     console.log('Prompt enviado para Hugging Face:', enhancedPrompt);
 
-    // Usar a API do Hugging Face com Stable Diffusion
-    const huggingfaceUrl = 'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2-1';
+    // Usar um modelo mais estável e rápido
+    const huggingfaceUrl = 'https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5';
     
     try {
+      console.log('Iniciando requisição para Hugging Face...' );
+      
       const response = await fetch(huggingfaceUrl, {
         method: 'POST',
         headers: {
@@ -60,28 +54,39 @@ export async function POST(request) {
         body: JSON.stringify({
           inputs: enhancedPrompt,
           parameters: {
-            num_inference_steps: 20,
-            guidance_scale: 7.5,
-            width: 512,
-            height: 512
+            num_inference_steps: 15,
+            guidance_scale: 7.0
           }
-        } )
+        }),
+        timeout: 30000 // 30 segundos de timeout
       });
+
+      console.log('Resposta recebida. Status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Erro da API Hugging Face:', response.status, errorText);
         
-        // Se o modelo está carregando, tentar novamente
+        // Se o modelo está carregando
         if (response.status === 503) {
-          throw new Error('Modelo está carregando, tente novamente em alguns segundos');
+          const fallbackSvg = createFallbackSVG(prompt, estilo, formato, 'Modelo carregando, tente novamente em 30 segundos');
+          const base64Image = `data:image/svg+xml;base64,${Buffer.from(fallbackSvg).toString('base64')}`;
+          
+          return new Response(JSON.stringify({ 
+            imageUrl: base64Image,
+            message: 'Modelo carregando, tente novamente em 30 segundos'
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
         
-        throw new Error(`Erro da API: ${response.status}`);
+        throw new Error(`Erro da API: ${response.status} - ${errorText}`);
       }
 
       // A resposta do Hugging Face é uma imagem em bytes
       const imageBuffer = await response.arrayBuffer();
+      console.log('Imagem recebida. Tamanho:', imageBuffer.byteLength, 'bytes');
       
       // Converter para base64
       const base64Image = `data:image/jpeg;base64,${Buffer.from(imageBuffer).toString('base64')}`;
@@ -97,15 +102,15 @@ export async function POST(request) {
       });
       
     } catch (huggingfaceError) {
-      console.error('Erro ao gerar imagem via Hugging Face:', huggingfaceError);
+      console.error('Erro detalhado ao gerar imagem via Hugging Face:', huggingfaceError.message);
       
       // Fallback: retornar uma imagem SVG como backup
-      const fallbackSvg = createFallbackSVG(prompt, estilo, formato);
+      const fallbackSvg = createFallbackSVG(prompt, estilo, formato, huggingfaceError.message);
       const base64Image = `data:image/svg+xml;base64,${Buffer.from(fallbackSvg).toString('base64')}`;
       
       return new Response(JSON.stringify({ 
         imageUrl: base64Image,
-        message: `Imagem gerada com fallback. Erro: ${huggingfaceError.message}`
+        message: `Fallback ativo. Erro: ${huggingfaceError.message}`
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
@@ -121,13 +126,13 @@ export async function POST(request) {
   }
 }
 
-// Função para criar SVG de fallback
-function createFallbackSVG(prompt, estilo, formato) {
+// Função para criar SVG de fallback com mensagem de erro
+function createFallbackSVG(prompt, estilo, formato, errorMessage = 'Tente novamente') {
   const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
   const bgColor = colors[Math.floor(Math.random() * colors.length)];
   const textColor = '#FFFFFF';
   
-  const words = prompt.split(' ').slice(0, 6);
+  const words = prompt.split(' ').slice(0, 4);
   const title = words.join(' ');
   
   return `
@@ -139,24 +144,28 @@ function createFallbackSVG(prompt, estilo, formato) {
         </linearGradient>
       </defs>
       <rect width="512" height="512" fill="url(#bg)" />
-      <circle cx="256" cy="150" r="60" fill="${textColor}" opacity="0.1" />
-      <circle cx="100" cy="400" r="40" fill="${textColor}" opacity="0.1" />
-      <circle cx="400" cy="350" r="50" fill="${textColor}" opacity="0.1" />
-      <text x="256" y="200" font-family="Arial, sans-serif" font-size="18" font-weight="bold" 
+      <circle cx="256" cy="120" r="50" fill="${textColor}" opacity="0.1" />
+      <circle cx="120" cy="380" r="35" fill="${textColor}" opacity="0.1" />
+      <circle cx="380" cy="320" r="45" fill="${textColor}" opacity="0.1" />
+      <text x="256" y="180" font-family="Arial, sans-serif" font-size="18" font-weight="bold" 
             text-anchor="middle" fill="${textColor}">
         ${title}
       </text>
-      <text x="256" y="280" font-family="Arial, sans-serif" font-size="14" 
+      <text x="256" y="240" font-family="Arial, sans-serif" font-size="14" 
             text-anchor="middle" fill="${textColor}" opacity="0.8">
         Estilo: ${estilo || 'Padrão'}
       </text>
-      <text x="256" y="310" font-family="Arial, sans-serif" font-size="14" 
+      <text x="256" y="270" font-family="Arial, sans-serif" font-size="14" 
             text-anchor="middle" fill="${textColor}" opacity="0.8">
         Formato: ${formato || 'Quadrado'}
       </text>
-      <text x="256" y="450" font-family="Arial, sans-serif" font-size="12" 
+      <text x="256" y="350" font-family="Arial, sans-serif" font-size="12" 
+            text-anchor="middle" fill="${textColor}" opacity="0.7">
+        ${errorMessage}
+      </text>
+      <text x="256" y="420" font-family="Arial, sans-serif" font-size="10" 
             text-anchor="middle" fill="${textColor}" opacity="0.6">
-        Fallback - Tente novamente
+        Modo Fallback - Aguarde e tente novamente
       </text>
     </svg>
   `;
