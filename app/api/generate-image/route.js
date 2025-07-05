@@ -19,56 +19,49 @@ export async function POST(request) {
       });
     }
 
-    // Gerar uma imagem simples usando Canvas (base64)
-    const canvas = createCanvas(512, 512);
-    const ctx = canvas.getContext('2d');
-    
-    // Fundo colorido baseado no prompt
+    // Gerar uma imagem SVG simples baseada no prompt
     const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
     const bgColor = colors[Math.floor(Math.random() * colors.length)];
+    const textColor = '#FFFFFF';
     
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, 512, 512);
+    // Quebrar o prompt em palavras para melhor visualização
+    const words = prompt.split(' ').slice(0, 8); // Máximo 8 palavras
+    const title = words.join(' ');
     
-    // Adicionar texto do prompt
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 24px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    // Criar SVG
+    const svgContent = `
+      <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${bgColor};stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${adjustColor(bgColor, -30 )};stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect width="512" height="512" fill="url(#bg)" />
+        <circle cx="256" cy="150" r="60" fill="${textColor}" opacity="0.1" />
+        <circle cx="100" cy="400" r="40" fill="${textColor}" opacity="0.1" />
+        <circle cx="400" cy="350" r="50" fill="${textColor}" opacity="0.1" />
+        <text x="256" y="200" font-family="Arial, sans-serif" font-size="24" font-weight="bold" 
+              text-anchor="middle" fill="${textColor}">
+          ${title}
+        </text>
+        <text x="256" y="280" font-family="Arial, sans-serif" font-size="16" 
+              text-anchor="middle" fill="${textColor}" opacity="0.8">
+          Estilo: ${estilo || 'Padrão'}
+        </text>
+        <text x="256" y="310" font-family="Arial, sans-serif" font-size="16" 
+              text-anchor="middle" fill="${textColor}" opacity="0.8">
+          Formato: ${formato || 'Quadrado'}
+        </text>
+        <text x="256" y="450" font-family="Arial, sans-serif" font-size="12" 
+              text-anchor="middle" fill="${textColor}" opacity="0.6">
+          Gerado por IA
+        </text>
+      </svg>
+    `;
     
-    // Quebrar texto em linhas
-    const words = prompt.split(' ');
-    const lines = [];
-    let currentLine = '';
-    
-    for (const word of words) {
-      const testLine = currentLine + word + ' ';
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > 450 && currentLine !== '') {
-        lines.push(currentLine);
-        currentLine = word + ' ';
-      } else {
-        currentLine = testLine;
-      }
-    }
-    lines.push(currentLine);
-    
-    // Desenhar linhas de texto
-    const lineHeight = 30;
-    const startY = 256 - (lines.length * lineHeight) / 2;
-    
-    lines.forEach((line, index) => {
-      ctx.fillText(line.trim(), 256, startY + index * lineHeight);
-    });
-    
-    // Adicionar informações do estilo e formato
-    ctx.font = '16px Arial';
-    ctx.fillText(`Estilo: ${estilo || 'Padrão'}`, 256, 450);
-    ctx.fillText(`Formato: ${formato || 'Quadrado'}`, 256, 480);
-    
-    // Converter para base64
-    const imageBuffer = canvas.toBuffer('image/png');
-    const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+    // Converter SVG para base64
+    const base64Image = `data:image/svg+xml;base64,${Buffer.from(svgContent).toString('base64')}`;
     
     return new Response(JSON.stringify({ 
       imageUrl: base64Image,
@@ -87,20 +80,16 @@ export async function POST(request) {
   }
 }
 
-// Função para criar canvas (simulação simples)
-function createCanvas(width, height) {
-  // Esta é uma implementação simplificada para demonstração
-  // Em um ambiente real, você usaria a biblioteca 'canvas' do Node.js
-  return {
-    getContext: () => ({
-      fillStyle: '',
-      font: '',
-      textAlign: '',
-      textBaseline: '',
-      fillRect: () => {},
-      fillText: () => {},
-      measureText: (text) => ({ width: text.length * 12 })
-    }),
-    toBuffer: () => Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
-  };
+// Função para ajustar cor (escurecer ou clarear)
+function adjustColor(color, amount) {
+  const usePound = color[0] === '#';
+  const col = usePound ? color.slice(1) : color;
+  const num = parseInt(col, 16);
+  let r = (num >> 16) + amount;
+  let g = (num >> 8 & 0x00FF) + amount;
+  let b = (num & 0x0000FF) + amount;
+  r = r > 255 ? 255 : r < 0 ? 0 : r;
+  g = g > 255 ? 255 : g < 0 ? 0 : g;
+  b = b > 255 ? 255 : b < 0 ? 0 : b;
+  return (usePound ? '#' : '') + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
 }
