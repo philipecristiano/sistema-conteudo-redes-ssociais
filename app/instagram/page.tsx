@@ -318,4 +318,3 @@ Comece hoje: encontre um cantinho tranquilo, respire fundo e simplesmente SEJA.
     </main>
   );
 }
-
