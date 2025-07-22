@@ -1,320 +1,468 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
-export default function InstagramPage() {
-  const [selectedContent, setSelectedContent] = useState('');
-  const [summary, setSummary] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [copied, setCopied] = useState(false);
+interface Node {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  category: string;
+  isCenter: boolean;
+  connections: string[];
+}
 
-  // Conteúdos de exemplo (em um sistema real, viriam de uma API)
-  const availableContent = [
-    {
-      id: 1,
-      title: "Benefícios da Atividade Física para Saúde Mental",
-      content: `A prática regular de exercícios físicos traz benefícios extraordinários para a saúde mental. Estudos comprovam que a atividade física libera endorfinas, conhecidas como "hormônios da felicidade", que ajudam a reduzir o estresse e a ansiedade.
+interface Category {
+  name: string;
+  color: string;
+  bgColor: string;
+}
 
-Além disso, o exercício melhora a qualidade do sono, aumenta a autoestima e proporciona uma sensação de conquista pessoal. Mesmo 30 minutos de caminhada diária podem fazer uma diferença significativa no seu bem-estar mental.
+export default function MapaMental() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [categories] = useState<Category[]>([
+    { name: 'Saúde', color: '#10B981', bgColor: '#D1FAE5' },
+    { name: 'Tecnologia', color: '#3B82F6', bgColor: '#DBEAFE' },
+    { name: 'Lifestyle', color: '#8B5CF6', bgColor: '#EDE9FE' },
+    { name: 'Negócios', color: '#F59E0B', bgColor: '#FEF3C7' },
+    { name: 'Educação', color: '#EF4444', bgColor: '#FEE2E2' },
+    { name: 'Entretenimento', color: '#EC4899', bgColor: '#FCE7F3' }
+  ]);
+  
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [draggedNode, setDraggedNode] = useState<string | null>(null);
+  const [newNodeText, setNewNodeText] = useState('');
+  const [newNodeCategory, setNewNodeCategory] = useState('Saúde');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-Outras vantagens incluem:
-- Redução dos sintomas de depressão
-- Melhora da concentração e memória
-- Aumento da energia e disposição
-- Fortalecimento da resiliência emocional
-
-Comece devagar e seja consistente. Seu corpo e mente agradecerão!`
-    },
-    {
-      id: 2,
-      title: "Dicas de Alimentação Saudável",
-      content: `Uma alimentação equilibrada é fundamental para manter a saúde e o bem-estar. Pequenas mudanças nos hábitos alimentares podem trazer grandes benefícios para sua qualidade de vida.
-
-Priorize alimentos naturais e minimamente processados. Inclua frutas, verduras, legumes, grãos integrais e proteínas magras em suas refeições. Beba bastante água ao longo do dia e evite açúcares refinados e gorduras trans.
-
-Dicas práticas:
-- Faça 5-6 refeições menores por dia
-- Mastigue bem os alimentos
-- Prepare suas refeições com antecedência
-- Leia os rótulos dos produtos
-- Modere o consumo de sal
-
-Lembre-se: não existem alimentos proibidos, mas sim escolhas mais saudáveis. O equilíbrio é a chave!`
-    },
-    {
-      id: 3,
-      title: "Meditação para Iniciantes",
-      content: `A meditação é uma prática milenar que pode transformar sua vida, reduzindo o estresse e aumentando o foco e a clareza mental. Não é preciso ser um monge para meditar - qualquer pessoa pode começar hoje mesmo.
-
-Para iniciantes, recomenda-se começar com apenas 5-10 minutos por dia. Encontre um local tranquilo, sente-se confortavelmente e foque na sua respiração. Quando a mente divagar (e ela vai!), gentilmente traga a atenção de volta para a respiração.
-
-Benefícios da meditação:
-- Redução do estresse e ansiedade
-- Melhora da concentração
-- Aumento da autoconsciência
-- Melhor qualidade do sono
-- Fortalecimento do sistema imunológico
-
-Existem vários tipos de meditação: mindfulness, transcendental, caminhada meditativa. Experimente e encontre o que funciona melhor para você!`
+  // Carregar dados salvos
+  useEffect(() => {
+    const savedNodes = localStorage.getItem('mapaMentalNodes');
+    if (savedNodes) {
+      setNodes(JSON.parse(savedNodes));
+    } else {
+      // Criar nó central inicial
+      const centerNode: Node = {
+        id: 'center',
+        text: 'Meus Temas de Conteúdo',
+        x: 400,
+        y: 300,
+        category: 'Lifestyle',
+        isCenter: true,
+        connections: []
+      };
+      setNodes([centerNode]);
     }
-  ];
+  }, []);
 
-  const generateSummary = async () => {
-    if (!selectedContent) return;
+  // Salvar automaticamente
+  useEffect(() => {
+    if (nodes.length > 0) {
+      localStorage.setItem('mapaMentalNodes', JSON.stringify(nodes));
+    }
+  }, [nodes]);
 
-    setIsGenerating(true);
-    try {
-      const content = availableContent.find(item => item.id === parseInt(selectedContent));
-      
-      // Simular chamada para API de IA (Gemini)
-      const response = await fetch('/api/search/generate-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tema: `Criar um resumo para Instagram do seguinte conteúdo: ${content.title}`,
-          formato: 'legenda para Instagram',
-          tom: 'engajador'
-        }),
+  // Desenhar canvas
+  useEffect(() => {
+    drawCanvas();
+  }, [nodes, selectedNode]);
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Limpar canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Desenhar conexões
+    nodes.forEach(node => {
+      node.connections.forEach(connectionId => {
+        const connectedNode = nodes.find(n => n.id === connectionId);
+        if (connectedNode) {
+          ctx.beginPath();
+          ctx.moveTo(node.x, node.y);
+          ctx.lineTo(connectedNode.x, connectedNode.y);
+          ctx.strokeStyle = '#E5E7EB';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       });
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        setSummary(data.generatedText);
-      } else {
-        // Fallback: criar resumo manual se a API falhar
-        const fallbackSummary = createFallbackSummary(content);
-        setSummary(fallbackSummary);
-      }
-    } catch (error) {
-      // Fallback: criar resumo manual se houver erro
-      const content = availableContent.find(item => item.id === parseInt(selectedContent));
-      const fallbackSummary = createFallbackSummary(content);
-      setSummary(fallbackSummary);
-    } finally {
-      setIsGenerating(false);
+    // Desenhar nós
+    nodes.forEach(node => {
+      const category = categories.find(c => c.name === node.category);
+      const isSelected = selectedNode === node.id;
+      
+      // Sombra
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+
+      // Círculo do nó
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, node.isCenter ? 60 : 40, 0, 2 * Math.PI);
+      ctx.fillStyle = category?.bgColor || '#F3F4F6';
+      ctx.fill();
+      
+      // Borda
+      ctx.strokeStyle = isSelected ? '#8B5CF6' : (category?.color || '#6B7280');
+      ctx.lineWidth = isSelected ? 3 : 2;
+      ctx.stroke();
+
+      // Reset shadow
+      ctx.shadowColor = 'transparent';
+
+      // Texto
+      ctx.fillStyle = category?.color || '#374151';
+      ctx.font = node.isCenter ? 'bold 14px Arial' : '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // Quebrar texto em múltiplas linhas se necessário
+      const words = node.text.split(' ');
+      const maxWidth = node.isCenter ? 100 : 70;
+      let lines: string[] = [];
+      let currentLine = '';
+
+      words.forEach(word => {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      });
+      lines.push(currentLine);
+
+      // Desenhar linhas de texto
+      const lineHeight = node.isCenter ? 16 : 14;
+      const startY = node.y - ((lines.length - 1) * lineHeight) / 2;
+      
+      lines.forEach((line, index) => {
+        ctx.fillText(line, node.x, startY + (index * lineHeight));
+      });
+    });
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Verificar se clicou em algum nó
+    const clickedNode = nodes.find(node => {
+      const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+      return distance <= (node.isCenter ? 60 : 40);
+    });
+
+    if (clickedNode) {
+      setSelectedNode(clickedNode.id);
+    } else {
+      setSelectedNode(null);
+      // Mostrar formulário para adicionar novo nó
+      setMousePos({ x, y });
+      setShowAddForm(true);
     }
   };
 
-  const createFallbackSummary = (content) => {
-    const summaries = {
-      1: `💪 Exercitar-se é cuidar da mente! 🧠✨
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-A atividade física não só fortalece o corpo, mas também libera endorfinas - os famosos "hormônios da felicidade"! 
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-🌟 Benefícios para sua saúde mental:
-• Reduz estresse e ansiedade
-• Melhora o sono e autoestima  
-• Aumenta concentração e energia
-• Fortalece a resiliência emocional
+    const clickedNode = nodes.find(node => {
+      const distance = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+      return distance <= (node.isCenter ? 60 : 40);
+    });
 
-Que tal começar com 30min de caminhada hoje? Seu corpo e mente vão agradecer! 💚
+    if (clickedNode && !clickedNode.isCenter) {
+      setDraggedNode(clickedNode.id);
+    }
+  };
 
-#SaudeMental #AtividadeFisica #BemEstar #Endorfinas #VidaSaudavel #Exercicios #Mindfulness`,
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!draggedNode) return;
 
-      2: `🥗 Alimentação saudável = vida mais plena! ✨
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-Pequenas mudanças nos hábitos alimentares podem transformar sua qualidade de vida! 
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-🌱 Dicas que fazem a diferença:
-• Priorize alimentos naturais
-• 5-6 refeições menores por dia
-• Beba bastante água 💧
-• Leia os rótulos
-• Equilibrio é a chave! ⚖️
+    setNodes(prev => prev.map(node => 
+      node.id === draggedNode ? { ...node, x, y } : node
+    ));
+  };
 
-Lembre-se: não existem alimentos proibidos, mas sim escolhas mais conscientes! 
+  const handleMouseUp = () => {
+    setDraggedNode(null);
+  };
 
-#AlimentacaoSaudavel #VidaSaudavel #BemEstar #Nutricao #Equilibrio #SaudeIntegral`,
+  const addNode = () => {
+    if (!newNodeText.trim()) return;
 
-      3: `🧘‍♀️ Meditação: sua mente merece essa pausa! ✨
-
-Apenas 5-10 minutos por dia podem transformar sua vida! A meditação é um presente que você dá para si mesmo 💝
-
-🌟 Benefícios incríveis:
-• Reduz estresse e ansiedade
-• Melhora foco e concentração  
-• Aumenta autoconsciência
-• Fortalece o sistema imunológico
-• Melhora a qualidade do sono 😴
-
-Comece hoje: encontre um cantinho tranquilo, respire fundo e simplesmente SEJA. 
-
-#Meditacao #Mindfulness #BemEstar #SaudeMental #Paz #Equilibrio #VidaPlena`
+    const newNode: Node = {
+      id: Date.now().toString(),
+      text: newNodeText,
+      x: mousePos.x,
+      y: mousePos.y,
+      category: newNodeCategory,
+      isCenter: false,
+      connections: ['center'] // Conectar ao nó central por padrão
     };
 
-    return summaries[content.id] || "Resumo não disponível.";
+    // Adicionar conexão do nó central para o novo nó
+    setNodes(prev => [
+      ...prev,
+      newNode
+    ].map(node => 
+      node.id === 'center' 
+        ? { ...node, connections: [...node.connections, newNode.id] }
+        : node
+    ));
+
+    setNewNodeText('');
+    setShowAddForm(false);
   };
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(summary);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Erro ao copiar:', error);
+  const deleteSelectedNode = () => {
+    if (!selectedNode || selectedNode === 'center') return;
+
+    setNodes(prev => prev
+      .filter(node => node.id !== selectedNode)
+      .map(node => ({
+        ...node,
+        connections: node.connections.filter(id => id !== selectedNode)
+      }))
+    );
+    setSelectedNode(null);
+  };
+
+  const exportAsImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const link = document.createElement('a');
+    link.download = 'mapa-mental-temas.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+  const clearMap = () => {
+    if (confirm('Tem certeza que deseja limpar todo o mapa mental?')) {
+      const centerNode: Node = {
+        id: 'center',
+        text: 'Meus Temas de Conteúdo',
+        x: 400,
+        y: 300,
+        category: 'Lifestyle',
+        isCenter: true,
+        connections: []
+      };
+      setNodes([centerNode]);
+      setSelectedNode(null);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-          Resumo para Instagram
-        </h1>
-        <p className="text-gray-600 text-center mb-8">
-          Transforme seu conteúdo em posts otimizados para Instagram com IA
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            🧠 Mapa Mental de Temas
+          </h1>
+          <p className="text-gray-600 text-lg max-w-3xl mx-auto">
+            Organize visualmente seus temas de conteúdo, crie conexões entre ideias e planeje sua estratégia de publicações de forma intuitiva.
+          </p>
+        </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Seleção de Conteúdo */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-purple-100">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm mr-3">1</span>
-              Selecione o Conteúdo
-            </h2>
-            
-            <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700">
-                Conteúdo Disponível
-              </label>
-              <select
-                value={selectedContent}
-                onChange={(e) => setSelectedContent(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">Selecione um conteúdo...</option>
-                {availableContent.map((content) => (
-                  <option key={content.id} value={content.id}>
-                    {content.title}
-                  </option>
+        {/* Toolbar */}
+        <div className="bg-white rounded-2xl shadow-xl p-4 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="text-sm font-medium text-gray-700">Categorias:</div>
+              <div className="flex gap-2">
+                {categories.map(category => (
+                  <div key={category.name} className="flex items-center gap-1">
+                    <div 
+                      className="w-4 h-4 rounded-full border-2"
+                      style={{ backgroundColor: category.bgColor, borderColor: category.color }}
+                    ></div>
+                    <span className="text-xs text-gray-600">{category.name}</span>
+                  </div>
                 ))}
-              </select>
-
-              {selectedContent && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-medium text-gray-800 mb-2">Preview do Conteúdo:</h3>
-                  <p className="text-sm text-gray-600 line-clamp-4">
-                    {availableContent.find(item => item.id === parseInt(selectedContent))?.content.substring(0, 200)}...
-                  </p>
-                </div>
-              )}
-
-              <button
-                onClick={generateSummary}
-                disabled={!selectedContent || isGenerating}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 px-6 rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
-              >
-                {isGenerating ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Gerando Resumo...
-                  </span>
-                ) : (
-                  '✨ Gerar Resumo com IA'
-                )}
-              </button>
+              </div>
             </div>
-          </div>
-
-          {/* Resultado */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-purple-100">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <span className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm mr-3">2</span>
-              Resumo para Instagram
-            </h2>
-
-            {!summary ? (
-              <div className="text-center py-12 text-gray-500">
-                <div className="w-16 h-16 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z"></path>
-                  </svg>
-                </div>
-                <p>Selecione um conteúdo e clique em "Gerar Resumo" para ver o resultado aqui!</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-purple-700">Pronto para Instagram!</span>
-                    <span className="text-xs text-gray-500">{summary.length} caracteres</span>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border">
-                    <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans">
-                      {summary}
-                    </pre>
-                  </div>
-                </div>
-
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={exportAsImage}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+              >
+                📸 Exportar Imagem
+              </button>
+              <button
+                onClick={clearMap}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+              >
+                🗑️ Limpar Tudo
+              </button>
+              {selectedNode && selectedNode !== 'center' && (
                 <button
-                  onClick={copyToClipboard}
-                  className={`w-full py-3 px-6 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 ${
-                    copied
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
-                  }`}
+                  onClick={deleteSelectedNode}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
                 >
-                  {copied ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Copiado!
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                      </svg>
-                      📱 Copiar para Instagram
-                    </span>
-                  )}
+                  ❌ Deletar Selecionado
                 </button>
-
-                <div className="text-xs text-gray-500 text-center">
-                  Agora é só colar no seu Instagram! 🚀
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Dicas */}
-        <div className="mt-8 bg-white rounded-xl shadow-lg p-6 border border-purple-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-            <span className="text-2xl mr-2">💡</span>
-            Dicas para Maximizar o Engajamento
-          </h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-start space-x-2">
-              <span className="text-purple-500">📸</span>
+        {/* Canvas */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <div className="relative">
+            <canvas
+              ref={canvasRef}
+              width={800}
+              height={600}
+              className="border border-gray-200 rounded-xl cursor-pointer w-full"
+              onClick={handleCanvasClick}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              style={{ maxWidth: '100%', height: 'auto' }}
+            />
+            
+            {/* Instruções */}
+            <div className="absolute top-4 left-4 bg-white bg-opacity-90 rounded-lg p-3 text-sm text-gray-600">
+              <div className="font-semibold mb-2">💡 Como usar:</div>
+              <div>• Clique em área vazia para adicionar tema</div>
+              <div>• Arraste nós para reorganizar</div>
+              <div>• Clique em nó para selecionar</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Estatísticas */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xl">📊</span>
+              </div>
               <div>
-                <p className="font-medium text-gray-700">Use imagens atrativas</p>
-                <p className="text-gray-600">Combine o texto com visuais impactantes</p>
+                <div className="text-2xl font-bold text-gray-800">{nodes.length - 1}</div>
+                <div className="text-gray-600">Temas Criados</div>
               </div>
             </div>
-            <div className="flex items-start space-x-2">
-              <span className="text-pink-500">⏰</span>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xl">🔗</span>
+              </div>
               <div>
-                <p className="font-medium text-gray-700">Poste no horário certo</p>
-                <p className="text-gray-600">Entre 18h-21h tem mais engajamento</p>
+                <div className="text-2xl font-bold text-gray-800">
+                  {nodes.reduce((acc, node) => acc + node.connections.length, 0)}
+                </div>
+                <div className="text-gray-600">Conexões</div>
               </div>
             </div>
-            <div className="flex items-start space-x-2">
-              <span className="text-blue-500">💬</span>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xl">🎯</span>
+              </div>
               <div>
-                <p className="font-medium text-gray-700">Interaja com seguidores</p>
-                <p className="text-gray-600">Responda comentários rapidamente</p>
+                <div className="text-2xl font-bold text-gray-800">
+                  {new Set(nodes.map(n => n.category)).size}
+                </div>
+                <div className="text-gray-600">Categorias Usadas</div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </main>
+
+      {/* Modal para adicionar novo nó */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-96 max-w-90vw">
+            <h3 className="text-xl font-semibold mb-4">➕ Adicionar Novo Tema</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nome do Tema
+                </label>
+                <input
+                  type="text"
+                  value={newNodeText}
+                  onChange={(e) => setNewNodeText(e.target.value)}
+                  placeholder="Ex: Receitas Saudáveis, Dicas de Produtividade..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Categoria
+                </label>
+                <select
+                  value={newNodeCategory}
+                  onChange={(e) => setNewNodeCategory(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  {categories.map(category => (
+                    <option key={category.name} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={addNode}
+                disabled={!newNodeText.trim()}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Adicionar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
+
