@@ -92,8 +92,10 @@ export default function MapaMental() {
         <div className="mt-6 bg-white rounded-lg p-4 shadow-sm border border-gray-200">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">📋 Status</h3>
           <div className="text-sm text-gray-600">
-            ✅ Esta é uma versão simplificada para teste<br/>
-            🔧 Se esta página carregar, o problema estava na complexidade do código<br/>
+            ✅ Esta é uma versão simplificada para teste  
+
+            🔧 Se esta página carregar, o problema estava na complexidade do código  
+
             🚀 Depois podemos adicionar as funcionalidades interativas
           </div>
         </div>
@@ -101,4 +103,3 @@ export default function MapaMental() {
     </div>
   );
 }
-
