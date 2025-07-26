@@ -1,194 +1,104 @@
-export default function AgendamentoPage() {
+export default function MapaMental() {
   return (
-    <main className="flex min-h-screen flex-col items-center p-8">
-      <h1 className="text-3xl font-bold mb-8">Agendamento de Publicações</h1>
-      
-      <div className="w-full max-w-4xl bg-white p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold mb-4">Calendário Editorial</h2>
-        <div className="border rounded-lg overflow-hidden">
-          <div className="grid grid-cols-7 bg-gray-100">
-            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, i) => (
-              <div key={i} className="p-2 text-center font-medium border-b">
-                {day}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            🧠 Mapa Mental de Temas
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Organize e visualize seus temas de conteúdo de forma estratégica
+          </p>
+        </div>
+
+        {/* Estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-purple-100">
+            <div className="text-2xl font-bold text-purple-600">5</div>
+            <div className="text-sm text-gray-600">Temas Criados</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-pink-100">
+            <div className="text-2xl font-bold text-pink-600">12</div>
+            <div className="text-sm text-gray-600">Conexões</div>
+          </div>
+          <div className="bg-white rounded-lg p-4 shadow-sm border border-indigo-100">
+            <div className="text-2xl font-bold text-indigo-600">3</div>
+            <div className="text-sm text-gray-600">Categorias Ativas</div>
+          </div>
+        </div>
+
+        {/* Controles */}
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-6">
+          <div className="flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex gap-4">
+              <button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium">
+                ➕ Adicionar Tema
+              </button>
+              <button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 font-medium">
+                📸 Exportar Imagem
+              </button>
+            </div>
+            <div className="text-sm text-gray-500">
+              💡 Versão simplificada para teste
+            </div>
+          </div>
+        </div>
+
+        {/* Área do Mapa Mental */}
+        <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-8">
+          <div className="text-center">
+            <div className="inline-block bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-lg p-6 mb-8">
+              <h3 className="text-xl font-bold text-purple-700">Temas de Conteúdo</h3>
+              <p className="text-purple-600">Nó Central</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+              {/* Temas de exemplo */}
+              <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
+                <h4 className="font-semibold text-green-700">Saúde</h4>
+                <p className="text-sm text-green-600">Alimentação, exercícios</p>
               </div>
-            ))}
+              
+              <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-700">Tecnologia</h4>
+                <p className="text-sm text-blue-600">IA, apps, gadgets</p>
+              </div>
+              
+              <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4">
+                <h4 className="font-semibold text-purple-700">Lifestyle</h4>
+                <p className="text-sm text-purple-600">Viagens, hobbies</p>
+              </div>
+              
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                <h4 className="font-semibold text-yellow-700">Negócios</h4>
+                <p className="text-sm text-yellow-600">Empreendedorismo</p>
+              </div>
+              
+              <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+                <h4 className="font-semibold text-red-700">Educação</h4>
+                <p className="text-sm text-red-600">Cursos, livros</p>
+              </div>
+              
+              <div className="bg-pink-50 border-2 border-pink-300 rounded-lg p-4">
+                <h4 className="font-semibold text-pink-700">Entretenimento</h4>
+                <p className="text-sm text-pink-600">Filmes, música</p>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-7 gap-px bg-gray-200">
-            {Array.from({ length: 35 }).map((_, i) => {
-              const day = i % 31 + 1;
-              const isCurrentMonth = day <= 31;
-              return (
-                <div 
-                  key={i} 
-                  className={`bg-white p-2 h-24 ${isCurrentMonth ? '' : 'text-gray-400'}`}
-                >
-                  <div className="font-medium">{isCurrentMonth ? day : day - 31}</div>
-                  {isCurrentMonth && day === 15 && (
-                    <div className="mt-1 p-1 text-xs bg-blue-100 text-blue-800 rounded">
-                      Post: Dicas de saúde
-                    </div>
-                  )}
-                  {isCurrentMonth && day === 22 && (
-                    <div className="mt-1 p-1 text-xs bg-purple-100 text-purple-800 rounded">
-                      Reels: Exercícios
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        </div>
+
+        {/* Legenda */}
+        <div className="mt-6 bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">📋 Status</h3>
+          <div className="text-sm text-gray-600">
+            ✅ Esta é uma versão simplificada para teste<br/>
+            🔧 Se esta página carregar, o problema estava na complexidade do código<br/>
+            🚀 Depois podemos adicionar as funcionalidades interativas
           </div>
         </div>
       </div>
-      
-      <div className="w-full max-w-4xl bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Agendar Nova Publicação</h2>
-        <form className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="conteudo" className="block text-sm font-medium mb-1">
-                Selecione o conteúdo
-              </label>
-              <select
-                id="conteudo"
-                className="w-full p-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Selecione um conteúdo gerado</option>
-                <option value="1">Dicas de alimentação saudável</option>
-                <option value="2">Exercícios para fazer em casa</option>
-                <option value="3">Meditação para iniciantes</option>
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="plataforma" className="block text-sm font-medium mb-1">
-                Plataforma
-              </label>
-              <select
-                id="plataforma"
-                className="w-full p-2 border border-gray-300 rounded-md"
-              >
-                <option value="">Selecione uma plataforma</option>
-                <option value="instagram">Instagram</option>
-                <option value="facebook">Facebook</option>
-                <option value="linkedin">LinkedIn</option>
-                <option value="twitter">Twitter</option>
-              </select>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="data" className="block text-sm font-medium mb-1">
-                Data
-              </label>
-              <input
-                type="date"
-                id="data"
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="hora" className="block text-sm font-medium mb-1">
-                Hora
-              </label>
-              <input
-                type="time"
-                id="hora"
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label htmlFor="notas" className="block text-sm font-medium mb-1">
-              Notas adicionais
-            </label>
-            <textarea
-              id="notas"
-              rows={3}
-              className="w-full p-2 border border-gray-300 rounded-md"
-              placeholder="Adicione notas ou lembretes sobre esta publicação..."
-            ></textarea>
-          </div>
-          
-          <button
-            type="submit"
-            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
-          >
-            Agendar Publicação
-          </button>
-        </form>
-      </div>
-      
-      <div className="w-full max-w-4xl mt-8 bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Publicações Agendadas</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Conteúdo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Plataforma
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Data e Hora
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Ações
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">Dicas de alimentação saudável</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">Instagram</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">15/06/2025 às 10:00</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                    Agendado
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <button className="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
-                  <button className="text-red-600 hover:text-red-900">Cancelar</button>
-                </td>
-              </tr>
-              <tr>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">Exercícios para fazer em casa</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">Instagram</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">22/06/2025 às 18:30</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                    Agendado
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <button className="text-blue-600 hover:text-blue-900 mr-3">Editar</button>
-                  <button className="text-red-600 hover:text-red-900">Cancelar</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </main>
+    </div>
   );
 }
+
