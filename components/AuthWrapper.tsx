@@ -13,88 +13,113 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Verificar autenticação
   useEffect(() => {
-    // Verificar autenticação
     const checkAuth = () => {
-      const authStatus = localStorage.getItem('sistema_auth') === 'true';
-      setIsAuthenticated(authStatus);
-      setIsLoading(false);
-
-      // Se não está autenticado e não está na página de login, redirecionar
-      if (!authStatus && pathname !== '/login') {
-        router.push('/login');
+      // Se estiver na página de login, não verificar autenticação
+      if (pathname === '/login') {
+        setIsAuthenticated(true); // Permitir acesso à página de login
+        setIsLoading(false);
+        return;
       }
+
+      const authenticated = localStorage.getItem('authenticated');
+      const loginTime = localStorage.getItem('loginTime');
+
+      if (authenticated === 'true' && loginTime) {
+        // Verificar se a sessão não expirou (24 horas)
+        const now = Date.now();
+        const loginTimestamp = parseInt(loginTime);
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+
+        if (now - loginTimestamp < twentyFourHours) {
+          setIsAuthenticated(true);
+        } else {
+          // Sessão expirada
+          localStorage.removeItem('authenticated');
+          localStorage.removeItem('loginTime');
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+
+      setIsLoading(false);
     };
 
     checkAuth();
+  }, [pathname]);
 
-    // Listener para mudanças no localStorage (logout em outras abas)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'sistema_auth') {
-        checkAuth();
-      }
-    };
+  // Redirecionar para login se não autenticado
+  useEffect(() => {
+    if (!isLoading && isAuthenticated === false && pathname !== '/login') {
+      router.push('/login');
+    }
+  }, [isAuthenticated, isLoading, pathname, router]);
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [router, pathname]);
+  // Função de logout
+  const handleLogout = () => {
+    localStorage.removeItem('authenticated');
+    localStorage.removeItem('loginTime');
+    setIsAuthenticated(false);
+    router.push('/login');
+  };
 
   // Loading screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-pink-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white bg-opacity-20 rounded-full mb-6 backdrop-blur-sm">
-            <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <h2 className="text-2xl font-semibold text-white mb-2">
-            Carregando Sistema...
+          <div className="w-16 h-16 border-4 border-purple-300 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-purple-700 mb-2">
+            Carregando Sistema
           </h2>
-          <p className="text-purple-200">
-            Verificando autenticação
+          <p className="text-purple-600">
+            Verificando autenticação...
           </p>
         </div>
       </div>
     );
   }
 
-  // Se está na página de login, mostrar sem verificação adicional
+  // Se não autenticado e não estiver na página de login, não renderizar nada
+  // (o useEffect vai redirecionar)
+  if (!isAuthenticated && pathname !== '/login') {
+    return null;
+  }
+
+  // Se estiver na página de login, renderizar sem header
   if (pathname === '/login') {
     return <>{children}</>;
   }
 
-  // Se não está autenticado, não mostrar nada (redirecionamento já foi feito)
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  // Se está autenticado, mostrar conteúdo com header de logout
+  // Renderizar com header de autenticação
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header com logout */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* Logo/Título */}
             <div className="flex items-center">
-              <span className="text-2xl mr-3">🚀</span>
-              <h1 className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Sistema de Conteúdo
               </h1>
             </div>
-            
+
+            {/* Informações do usuário e logout */}
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600">
-                Sistema Privado
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-gray-600">Sistema Ativo</span>
               </div>
+              
               <button
-                onClick={() => {
-                  localStorage.removeItem('sistema_auth');
-                  router.push('/login');
-                }}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors"
+                onClick={handleLogout}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2"
               >
-                <span className="mr-2">🚪</span>
-                Sair
+                <span>🔓</span>
+                <span>Sair</span>
               </button>
             </div>
           </div>
@@ -102,9 +127,18 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
       </header>
 
       {/* Conteúdo principal */}
-      <main>
+      <main className="flex-1">
         {children}
       </main>
+
+      {/* Footer opcional */}
+      <footer className="bg-white border-t border-gray-200 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center text-sm text-gray-500">
+            <p>🔒 Sistema protegido por autenticação • Desenvolvido com segurança</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
