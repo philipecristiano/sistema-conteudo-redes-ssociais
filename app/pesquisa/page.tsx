@@ -3,122 +3,96 @@
 import { useState } from 'react';
 
 interface SearchResult {
+  id: string;
   title: string;
-  url: string;
+  authors: string;
+  journal: string;
+  year: string;
   snippet: string;
+  url: string;
   source: string;
   type: 'scientific' | 'general';
-  authors?: string;
-  year?: string;
-  journal?: string;
+  citations?: number;
+  doi?: string;
+  pmid?: string;
+  pdf_url?: string;
+  has_pdf?: boolean;
 }
 
-export default function PesquisaCientifica() {
+interface SearchResponse {
+  results: SearchResult[];
+  total?: number;
+  sourceStats?: Record<string, number>;
+  errors?: Array<{ source: string; error: string }>;
+}
+
+export default function PesquisaCientificaReal() {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searchType, setSearchType] = useState<'scientific' | 'mixed'>('scientific');
+  const [selectedSources, setSelectedSources] = useState<string[]>(['pubmed', 'crossref', 'semantic-scholar']);
+  const [sourceStats, setSourceStats] = useState<Record<string, number>>({});
+  const [searchErrors, setSearchErrors] = useState<Array<{ source: string; error: string }>>([]);
   const [articleText, setArticleText] = useState('');
   const [summary, setSummary] = useState('');
   const [isSummarizing, setIsSummarizing] = useState(false);
 
-  // Simular busca em bases científicas
+  // Opções de fontes disponíveis
+  const availableSources = [
+    { id: 'pubmed', name: 'PubMed', description: 'Base médica e biomédica' },
+    { id: 'crossref', name: 'CrossRef', description: 'Metadados científicos globais' },
+    { id: 'semantic-scholar', name: 'Semantic Scholar', description: 'IA para pesquisa acadêmica' },
+    { id: 'arxiv', name: 'arXiv', description: 'Preprints científicos' }
+  ];
+
+  // Busca real usando as APIs implementadas
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
 
     setIsLoading(true);
     setError('');
     setResults([]);
+    setSourceStats({});
+    setSearchErrors([]);
 
     try {
-      // Simular resultados de diferentes bases científicas
-      const mockResults: SearchResult[] = [
-        // PubMed
-        {
-          title: `${searchTerm}: A Systematic Review and Meta-Analysis`,
-          url: `https://pubmed.ncbi.nlm.nih.gov/example1`,
-          snippet: `Comprehensive systematic review examining the effects of ${searchTerm} on health outcomes. This meta-analysis includes 45 randomized controlled trials with over 10,000 participants...`,
-          source: 'PubMed',
-          type: 'scientific',
-          authors: 'Silva, J.P.; Santos, M.A.; Oliveira, R.C.',
-          year: '2024',
-          journal: 'Journal of Medical Research'
+      // Usar a API unificada que combina todas as fontes
+      const response = await fetch('/api/search/scientific', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          title: `Clinical Applications of ${searchTerm} in Modern Medicine`,
-          url: `https://pubmed.ncbi.nlm.nih.gov/example2`,
-          snippet: `Recent advances in ${searchTerm} have shown promising results in clinical trials. This study presents evidence-based recommendations for healthcare professionals...`,
-          source: 'PubMed',
-          type: 'scientific',
-          authors: 'Rodriguez, A.L.; Kim, S.H.',
-          year: '2024',
-          journal: 'Clinical Medicine Today'
-        },
-        // Google Scholar
-        {
-          title: `The Impact of ${searchTerm} on Sustainable Development`,
-          url: `https://scholar.google.com/example1`,
-          snippet: `This research investigates the relationship between ${searchTerm} and sustainable development goals. Our findings suggest significant correlations with environmental outcomes...`,
-          source: 'Google Scholar',
-          type: 'scientific',
-          authors: 'Thompson, K.M.; Patel, N.R.',
-          year: '2023',
-          journal: 'Environmental Science Quarterly'
-        },
-        // SciELO
-        {
-          title: `${searchTerm}: Perspectivas Brasileiras e Internacionais`,
-          url: `https://scielo.br/example1`,
-          snippet: `Estudo comparativo sobre ${searchTerm} no contexto brasileiro e internacional. A pesquisa analisa dados de 15 países e apresenta recomendações específicas...`,
-          source: 'SciELO',
-          type: 'scientific',
-          authors: 'Costa, L.B.; Ferreira, A.M.',
-          year: '2024',
-          journal: 'Revista Brasileira de Pesquisa'
-        },
-        // ResearchGate
-        {
-          title: `Innovative Approaches to ${searchTerm}: A Multidisciplinary Study`,
-          url: `https://researchgate.net/example1`,
-          snippet: `Novel methodologies for studying ${searchTerm} across multiple disciplines. This collaborative research presents innovative frameworks and practical applications...`,
-          source: 'ResearchGate',
-          type: 'scientific',
-          authors: 'Johnson, R.K.; Lee, M.S.; Brown, T.A.',
-          year: '2024',
-          journal: 'Interdisciplinary Research Journal'
-        }
-      ];
+        body: JSON.stringify({
+          searchTerm: searchTerm.trim(),
+          sources: selectedSources,
+          maxResults: 5
+        })
+      });
 
-      // Se busca mista, adicionar resultados gerais
-      if (searchType === 'mixed') {
-        mockResults.push(
-          {
-            title: `${searchTerm} - Guia Completo e Atualizado`,
-            url: `https://example.com/guia-${searchTerm}`,
-            snippet: `Guia completo sobre ${searchTerm} com informações atualizadas, dicas práticas e exemplos reais. Conteúdo verificado por especialistas...`,
-            source: 'Portal Especializado',
-            type: 'general'
-          },
-          {
-            title: `Tudo sobre ${searchTerm}: Benefícios e Aplicações`,
-            url: `https://example.com/beneficios-${searchTerm}`,
-            snippet: `Descubra os principais benefícios de ${searchTerm} e como aplicar no dia a dia. Artigo baseado em evidências científicas...`,
-            source: 'Site Educativo',
-            type: 'general'
-          }
-        );
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
       }
 
-      setResults(mockResults);
+      const data: SearchResponse = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        setResults(data.results);
+        setSourceStats(data.sourceStats || {});
+        setSearchErrors(data.errors || []);
+      } else {
+        setError('Nenhum resultado encontrado para este termo de busca.');
+      }
+
     } catch (err) {
-      setError('Erro ao realizar a pesquisa. Tente novamente.');
+      console.error('Erro na busca:', err);
+      setError('Erro ao realizar a pesquisa. Verifique sua conexão e tente novamente.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Gerar resumo do artigo
+  // Gerar resumo do artigo usando API real
   const handleSummarize = async () => {
     if (!articleText.trim()) return;
 
@@ -126,50 +100,49 @@ export default function PesquisaCientifica() {
     setSummary('');
 
     try {
-      // Simular processamento de resumo
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('/api/search/generate-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: `Analise o seguinte artigo científico e gere um resumo estruturado destacando os pontos mais importantes:
 
-      const mockSummary = `
-## 📋 Resumo Executivo
+${articleText}
 
-### 🎯 Pontos Principais:
-• **Objetivo:** Análise abrangente dos efeitos e aplicações do tema pesquisado
-• **Metodologia:** Revisão sistemática com critérios rigorosos de seleção
-• **Amostra:** Estudos com alta qualidade metodológica e relevância científica
+Por favor, organize o resumo com as seguintes seções:
+- Objetivo do estudo
+- Metodologia utilizada
+- Principais resultados
+- Conclusões
+- Implicações práticas
+- Limitações do estudo`,
+          maxTokens: 1000
+        })
+      });
 
-### 🔬 Principais Descobertas:
-1. **Eficácia Comprovada:** Os resultados demonstram evidências consistentes de benefícios significativos
-2. **Segurança:** Perfil de segurança favorável com baixa incidência de efeitos adversos
-3. **Aplicabilidade:** Potencial de implementação em diferentes contextos e populações
+      if (response.ok) {
+        const data = await response.json();
+        setSummary(data.text || 'Resumo gerado com sucesso, mas conteúdo não disponível.');
+      } else {
+        throw new Error('Erro ao gerar resumo');
+      }
 
-### 📊 Resultados Quantitativos:
-• **Melhoria observada:** 65-80% dos casos estudados
-• **Significância estatística:** p < 0.001 em análises principais
-• **Tamanho do efeito:** Moderado a grande (d = 0.7-1.2)
-
-### 🎯 Conclusões:
-As evidências suportam a eficácia e segurança da abordagem estudada. Recomenda-se implementação gradual com monitoramento contínuo dos resultados.
-
-### 📚 Implicações Práticas:
-• Aplicação imediata em contextos clínicos/práticos
-• Necessidade de treinamento adequado para implementação
-• Potencial para políticas públicas baseadas em evidências
-
-### 🔍 Limitações:
-• Heterogeneidade entre estudos incluídos
-• Necessidade de estudos longitudinais adicionais
-• Variabilidade nas populações estudadas
-
----
-*Resumo gerado automaticamente com base no texto fornecido*
-      `;
-
-      setSummary(mockSummary);
     } catch (err) {
+      console.error('Erro ao gerar resumo:', err);
       setError('Erro ao gerar resumo. Tente novamente.');
     } finally {
       setIsSummarizing(false);
     }
+  };
+
+  // Toggle de seleção de fontes
+  const toggleSource = (sourceId: string) => {
+    setSelectedSources(prev => 
+      prev.includes(sourceId) 
+        ? prev.filter(id => id !== sourceId)
+        : [...prev, sourceId]
+    );
   };
 
   return (
@@ -178,10 +151,10 @@ As evidências suportam a eficácia e segurança da abordagem estudada. Recomend
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-            🔬 Pesquisa Científica Avançada
+            🔬 Pesquisa Científica com APIs Reais
           </h1>
           <p className="text-gray-600 text-lg">
-            Busca prioritária em bases científicas e geração automática de resumos
+            Busca real em PubMed, CrossRef, Semantic Scholar e arXiv
           </p>
         </div>
 
@@ -191,7 +164,7 @@ As evidências suportam a eficácia e segurança da abordagem estudada. Recomend
             {/* Formulário de Pesquisa */}
             <div className="bg-white rounded-lg shadow-lg p-6 border border-purple-100">
               <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                🔍 Busca em Bases Científicas
+                🔍 Busca em Bases Científicas Reais
               </h2>
               
               <div className="space-y-4">
@@ -203,52 +176,77 @@ As evidências suportam a eficácia e segurança da abordagem estudada. Recomend
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Ex: diabetes tipo 2, inteligência artificial, sustentabilidade..."
+                    placeholder="Ex: diabetes tipo 2, machine learning, climate change..."
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </div>
 
+                {/* Seleção de Fontes */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Busca
+                    Bases de Dados (selecione uma ou mais)
                   </label>
-                  <select
-                    value={searchType}
-                    onChange={(e) => setSearchType(e.target.value as 'scientific' | 'mixed')}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="scientific">🔬 Apenas Artigos Científicos</option>
-                    <option value="mixed">📚 Científicos + Fontes Gerais</option>
-                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    {availableSources.map(source => (
+                      <label key={source.id} className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedSources.includes(source.id)}
+                          onChange={() => toggleSource(source.id)}
+                          className="text-purple-600 focus:ring-purple-500"
+                        />
+                        <div>
+                          <div className="font-medium text-sm">{source.name}</div>
+                          <div className="text-xs text-gray-500">{source.description}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 <button
                   onClick={handleSearch}
-                  disabled={isLoading || !searchTerm.trim()}
+                  disabled={isLoading || !searchTerm.trim() || selectedSources.length === 0}
                   className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Pesquisando...
+                      Buscando em {selectedSources.length} base(s)...
                     </div>
                   ) : (
-                    '🔍 Pesquisar em Bases Científicas'
+                    '🔍 Buscar em Bases Científicas'
                   )}
                 </button>
               </div>
 
-              {/* Bases de Dados */}
-              <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-                <h3 className="font-semibold text-purple-800 mb-2">📚 Bases Consultadas:</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm text-purple-700">
-                  <div>• PubMed (Medicina)</div>
-                  <div>• Google Scholar</div>
-                  <div>• SciELO (Brasil)</div>
-                  <div>• ResearchGate</div>
+              {/* Estatísticas por Fonte */}
+              {Object.keys(sourceStats).length > 0 && (
+                <div className="mt-6 p-4 bg-purple-50 rounded-lg">
+                  <h3 className="font-semibold text-purple-800 mb-2">📊 Resultados por Base:</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {Object.entries(sourceStats).map(([source, count]) => (
+                      <div key={source} className="flex justify-between text-purple-700">
+                        <span>{source}:</span>
+                        <span className="font-medium">{count} artigos</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Erros por Fonte */}
+              {searchErrors.length > 0 && (
+                <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <h3 className="font-semibold text-yellow-800 mb-2">⚠️ Avisos:</h3>
+                  {searchErrors.map((error, index) => (
+                    <div key={index} className="text-sm text-yellow-700">
+                      <strong>{error.source}:</strong> {error.error}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Resultados da Pesquisa */}
@@ -260,18 +258,24 @@ As evidências suportam a eficácia e segurança da abordagem estudada. Recomend
                 
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {results.map((result, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div key={`${result.source}-${result.id}`} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between mb-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          result.type === 'scientific' 
-                            ? 'bg-purple-100 text-purple-800' 
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           {result.source}
                         </span>
-                        {result.year && (
-                          <span className="text-xs text-gray-500">{result.year}</span>
-                        )}
+                        <div className="flex items-center space-x-2 text-xs text-gray-500">
+                          {result.year && <span>{result.year}</span>}
+                          {result.citations !== undefined && (
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                              {result.citations} citações
+                            </span>
+                          )}
+                          {result.has_pdf && (
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              PDF disponível
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       <h4 className="font-semibold text-gray-800 mb-2 leading-tight">
@@ -281,26 +285,36 @@ As evidências suportam a eficácia e segurança da abordagem estudada. Recomend
                         </a>
                       </h4>
                       
-                      {result.authors && (
-                        <p className="text-sm text-gray-600 mb-1">
-                          <strong>Autores:</strong> {result.authors}
-                        </p>
-                      )}
+                      <p className="text-sm text-gray-600 mb-1">
+                        <strong>Autores:</strong> {result.authors}
+                      </p>
                       
-                      {result.journal && (
-                        <p className="text-sm text-gray-600 mb-2">
-                          <strong>Revista:</strong> {result.journal}
-                        </p>
-                      )}
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>Revista:</strong> {result.journal}
+                      </p>
                       
-                      <p className="text-sm text-gray-700 leading-relaxed">
+                      <p className="text-sm text-gray-700 leading-relaxed mb-3">
                         {result.snippet}
                       </p>
                       
-                      <a href={result.url} target="_blank" rel="noopener noreferrer"
-                         className="inline-block mt-2 text-sm text-purple-600 hover:text-purple-800 font-medium">
-                        📖 Ler artigo completo →
-                      </a>
+                      <div className="flex items-center space-x-4">
+                        <a href={result.url} target="_blank" rel="noopener noreferrer"
+                           className="text-sm text-purple-600 hover:text-purple-800 font-medium">
+                          📖 Ver artigo →
+                        </a>
+                        {result.pdf_url && (
+                          <a href={result.pdf_url} target="_blank" rel="noopener noreferrer"
+                             className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                            📄 PDF gratuito →
+                          </a>
+                        )}
+                        {result.doi && (
+                          <a href={`https://doi.org/${result.doi}`} target="_blank" rel="noopener noreferrer"
+                             className="text-sm text-gray-600 hover:text-gray-800">
+                            DOI: {result.doi}
+                          </a>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -312,7 +326,7 @@ As evidências suportam a eficácia e segurança da abordagem estudada. Recomend
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6 border border-pink-100">
               <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
-                📝 Gerador de Resumo de Artigos
+                📝 Gerador de Resumo com IA
               </h2>
               
               <div className="space-y-4">
@@ -339,7 +353,7 @@ As evidências suportam a eficácia e segurança da abordagem estudada. Recomend
                   {isSummarizing ? (
                     <div className="flex items-center justify-center">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Gerando Resumo...
+                      Gerando Resumo com IA...
                     </div>
                   ) : (
                     '🤖 Gerar Resumo Inteligente'
@@ -353,7 +367,7 @@ As evidências suportam a eficácia e segurança da abordagem estudada. Recomend
               <div className="bg-white rounded-lg shadow-lg p-6 border border-green-100">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold text-gray-800">
-                    ✨ Resumo Gerado
+                    ✨ Resumo Gerado com IA
                   </h3>
                   <button
                     onClick={() => navigator.clipboard.writeText(summary)}
