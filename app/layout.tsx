@@ -1,3 +1,5 @@
+// Force deploy sync - v2.0.1
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
