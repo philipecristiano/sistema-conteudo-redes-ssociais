@@ -2,6 +2,7 @@
   "name": "nextjs",
   "version": "0.1.0",
   "private": true,
+  "version": "2.0.1",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
